@@ -180,3 +180,55 @@ a:hover { text-decoration: underline; }
 .nv-note-card h4 { margin: 0 0 6px; }
 .nv-note-card p { margin: 0 0 8px; white-space: pre-wrap; }
 .nv-note-meta { font-size: 11px; }
+.nv-note-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+}
+.nv-note-actions { display: flex; gap: 8px; }
+
+.nv-btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+.nv-btn-danger-outline {
+  background: transparent;
+  border-color: var(--nv-danger);
+  color: var(--nv-danger);
+}
+.nv-btn-danger-outline:hover {
+  background: var(--nv-danger);
+  color: #fff;
+}
+
+.nv-note-card-editing { padding: 16px; }
+
+/* Confirmation dialog */
+.nv-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 24px;
+}
+.nv-dialog {
+  background: var(--nv-surface);
+  border: 1px solid var(--nv-border);
+  border-radius: var(--nv-radius);
+  padding: 24px;
+  max-width: 440px;
+  width: 100%;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+.nv-dialog h3 { margin: 0 0 8px; }
+.nv-dialog p { margin: 0 0 20px; color: var(--nv-muted); }
+.nv-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

@@ -1,8 +1,9 @@
+import { NoteCard } from "../components/NoteCard";
 import { NoteForm } from "../components/NoteForm";
 import { useNotesStore } from "../store/notesStore";
 
 export function NotesPage() {
-  const { notes, upsertNote, error } = useNotesStore();
+  const { notes, upsertNote, removeNote, error } = useNotesStore();
 
   return (
     <section className="nv-notes-page">
@@ -22,13 +23,12 @@ export function NotesPage() {
         ) : (
           <ul className="nv-notes-ul">
             {notes.map((n) => (
-              <li key={n.id} className="nv-note-card">
-                <h4>{n.title}</h4>
-                {n.body && <p>{n.body}</p>}
-                <span className="nv-muted nv-note-meta">
-                  Updated {new Date(n.updatedAt).toLocaleString()}
-                </span>
-              </li>
+              <NoteCard
+                key={n.id}
+                note={n}
+                onUpdated={upsertNote}
+                onDeleted={removeNote}
+              />
             ))}
           </ul>
         )}
