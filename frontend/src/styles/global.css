@@ -188,7 +188,54 @@ a:hover { text-decoration: underline; }
 
 /* Notes list */
 .nv-notes-page { display: flex; flex-direction: column; gap: 24px; }
-.nv-notes-list h3 { margin: 0 0 12px; }
+.nv-notes-list h3 { margin: 0; }
+.nv-notes-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.nv-search {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+  max-width: 320px;
+}
+.nv-search-input {
+  padding-right: 32px;
+}
+.nv-search-clear {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: var(--nv-border);
+  color: var(--nv-text);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+.nv-search-clear:hover { background: var(--nv-muted); color: var(--nv-bg); }
+
+.nv-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .nv-notes-ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
 .nv-note-card {
   background: var(--nv-surface);
