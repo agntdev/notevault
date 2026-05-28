@@ -163,6 +163,14 @@ a:hover { text-decoration: underline; }
   color: var(--nv-danger);
   font-size: 12px;
 }
+.nv-err-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.nv-err-row .nv-err { margin: 0; }
 
 .nv-form-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .nv-btn:disabled { opacity: 0.5; cursor: not-allowed; }
