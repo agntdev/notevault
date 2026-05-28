@@ -1,8 +1,15 @@
+import { Link, useNavigate } from "react-router-dom";
+
+import { AuthForm } from "../components/AuthForm";
+
 export function LoginPage() {
+  const navigate = useNavigate();
   return (
-    <section className="nv-card">
-      <h2>Sign in</h2>
-      <p className="nv-muted">Login form is implemented in T04 — user authentication.</p>
-    </section>
+    <div className="nv-auth-wrap">
+      <AuthForm mode="login" onSuccess={() => navigate("/notes")} />
+      <p className="nv-muted nv-auth-foot">
+        New here? <Link to="/register">Create an account</Link>
+      </p>
+    </div>
   );
 }

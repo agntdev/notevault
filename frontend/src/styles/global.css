@@ -167,6 +167,17 @@ a:hover { text-decoration: underline; }
 .nv-form-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .nv-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* Auth pages */
+.nv-auth-wrap {
+  max-width: 420px;
+  margin: 32px auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.nv-auth-wrap h2 { margin: 0 0 8px; }
+.nv-auth-foot { text-align: center; font-size: 12px; margin: 0; }
+
 /* Notes list */
 .nv-notes-page { display: flex; flex-direction: column; gap: 24px; }
 .nv-notes-list h3 { margin: 0 0 12px; }
