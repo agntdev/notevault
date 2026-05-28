@@ -8,7 +8,7 @@ on:
 
 jobs:
   frontend:
-    name: Frontend (build + typecheck)
+    name: Frontend (typecheck + tests + build)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -22,10 +22,11 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npm run typecheck
+      - run: npm test
       - run: npm run build
 
   backend:
-    name: Backend (build + tests)
+    name: Backend (typecheck + tests + build)
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -46,7 +47,8 @@ jobs:
         working-directory: backend
     env:
       DATABASE_URL: postgres://notevault:notevault@localhost:5432/notevault_test
-      JWT_SECRET: ci-only-secret-do-not-use-in-production
+      JWT_SECRET: ci-only-secret-padding-padding-1234
+      JWT_EXPIRES_IN: 1h
       NODE_ENV: test
     steps:
       - uses: actions/checkout@v4
@@ -61,11 +63,5 @@ jobs:
       - name: Apply migrations
         run: cd ../db && DATABASE_URL="$DATABASE_URL" node migrate.mjs
       - run: npm run typecheck
+      - run: npm test
       - run: npm run build
-      - name: Run tests (if defined)
-        run: |
-          if [ -d test ] || npm run -s 2>/dev/null | grep -q "  test"; then
-            npm test --if-present
-          else
-            echo "No backend tests yet — skipping (T10 adds them)."
-          fi
