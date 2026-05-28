@@ -1,0 +1,141 @@
+name: Deploy to staging
+
+# Manual trigger or on a merged PR to main. The workflow builds the backend
+# container, pushes it to GHCR, and SSHes into the staging host to roll the
+# `notevault-staging` service. The static frontend bundle goes out via a
+# second job that uploads to the same host (or a CDN — swap the rsync step
+# for `aws s3 sync` etc. when migrating).
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   STAGING_HOST            — e.g. staging.notevault.example.com
+#   STAGING_SSH_USER        — deploy user with sudo
+#   STAGING_SSH_KEY         — private key matching the deploy user
+#   STAGING_DATABASE_URL    — Postgres URL for the staging DB
+#   STAGING_JWT_SECRET      — 32+ char random string
+#   STAGING_CORS_ORIGIN     — https://staging.notevault.example.com
+#   STAGING_FRONTEND_API_URL — https://staging.notevault.example.com/api
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Git ref to deploy (defaults to main)"
+        required: false
+        default: main
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - "db/**"
+      - ".github/workflows/deploy-staging.yml"
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+jobs:
+  build-and-push:
+    name: Build + push backend image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+      - id: meta
+        run: |
+          echo "image=ghcr.io/${{ github.repository_owner }}/notevault-backend:${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/Dockerfile.backend
+          push: true
+          tags: ${{ steps.meta.outputs.image }}
+
+  deploy-backend:
+    name: Roll staging backend
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://${{ secrets.STAGING_HOST }}
+    steps:
+      - name: Roll service over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_SSH_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          envs: STAGING_DATABASE_URL,STAGING_JWT_SECRET,STAGING_CORS_ORIGIN,IMAGE
+          script_stop: true
+          script: |
+            set -euo pipefail
+            IMAGE='${{ needs.build-and-push.outputs.image }}'
+            STAGING_DATABASE_URL='${{ secrets.STAGING_DATABASE_URL }}'
+            STAGING_JWT_SECRET='${{ secrets.STAGING_JWT_SECRET }}'
+            STAGING_CORS_ORIGIN='${{ secrets.STAGING_CORS_ORIGIN }}'
+
+            sudo docker pull "$IMAGE"
+            sudo docker rm -f notevault-backend || true
+            sudo docker run -d \
+              --name notevault-backend \
+              --restart unless-stopped \
+              -p 127.0.0.1:3001:3001 \
+              -e NODE_ENV=production \
+              -e PORT=3001 \
+              -e DATABASE_URL="$STAGING_DATABASE_URL" \
+              -e JWT_SECRET="$STAGING_JWT_SECRET" \
+              -e CORS_ORIGIN="$STAGING_CORS_ORIGIN" \
+              "$IMAGE"
+            # Wait for the health check to start returning 200.
+            for i in {1..20}; do
+              if curl -fsS http://127.0.0.1:3001/api/health >/dev/null; then
+                echo "Backend is healthy"
+                exit 0
+              fi
+              sleep 1
+            done
+            echo "Backend did not become healthy in 20s"
+            sudo docker logs --tail 80 notevault-backend
+            exit 1
+
+  deploy-frontend:
+    name: Build + ship frontend bundle
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://${{ secrets.STAGING_HOST }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+      - name: Build
+        run: |
+          cd frontend
+          npm ci
+          VITE_API_URL='${{ secrets.STAGING_FRONTEND_API_URL }}' npm run build
+      - name: Rsync dist/ to staging host
+        uses: easingthemes/ssh-deploy@v5.1.0
+        with:
+          SSH_PRIVATE_KEY: ${{ secrets.STAGING_SSH_KEY }}
+          REMOTE_HOST: ${{ secrets.STAGING_HOST }}
+          REMOTE_USER: ${{ secrets.STAGING_SSH_USER }}
+          SOURCE: "frontend/dist/"
+          TARGET: "/var/www/notevault-staging/"
+          ARGS: "-rltgoDzvO --delete"
